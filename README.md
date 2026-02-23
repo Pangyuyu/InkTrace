@@ -81,7 +81,7 @@ npm run tauri build
 ## 项目结构
 
 ```
-Project-Template/
+InkTrace/
 ├── src/                    # 前端源码
 │   ├── components/        # Vue 组件
 │   ├── views/             # 页面视图

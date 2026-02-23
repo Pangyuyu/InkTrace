@@ -338,7 +338,7 @@ Week 7-8: 完善与发布
 ## 目录结构规划
 
 ```
-Project-Template/
+InkTrace/
 ├── src/                    # 前端源码
 │   ├── components/        # Vue 组件
 │   ├── views/             # 页面视图
