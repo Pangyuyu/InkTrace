@@ -9,12 +9,12 @@ Learn more about the recommended Project Setup and IDE Support in the [Vue Docs 
 
 > 记录每一笔思绪
 
-一个用于个人写作内容管理的桌面应用，基于 Tauri 2.0 + Vue 3 + SQLite 构建。
+一个用于个人写作内容管理的桌面应用，基于 Electron + Vue 3 + SQLite 构建。
 
 ## 项目状态
 
 ![Version](https://img.shields.io/badge/version-0.1.0--dev-blue)
-![Tauri](https://img.shields.io/badge/Tauri-2.0-green)
+![Electron](https://img.shields.io/badge/Electron-最新版-blue)
 ![Vue](https://img.shields.io/badge/Vue-3.x-brightgreen)
 ![License](https://img.shields.io/badge/license-MIT-yellow)
 
@@ -36,8 +36,8 @@ Learn more about the recommended Project Setup and IDE Support in the [Vue Docs 
 | 前端框架 | Vue 3 | ^3.3.0 | 渐进式 JavaScript 框架 |
 | 状态管理 | Pinia | ^2.1.0 | Vue 官方状态管理库 |
 | 类型支持 | TypeScript | ^5.0.0 | 静态类型检查 |
-| 桌面框架 | Tauri | ^2.0.0 | 轻量级跨平台桌面应用框架 |
-| 后端语言 | Rust | ^1.70.0 | 高性能系统编程语言 |
+| 桌面框架 | Electron | 最新版 | 跨平台桌面应用框架 |
+| 运行时环境 | Node.js | ^18.0.0 | JavaScript 运行时环境 |
 | 数据库 | SQLite | ^3.0 | 嵌入式关系数据库 |
 
 ## 开发指南
@@ -49,10 +49,9 @@ Learn more about the recommended Project Setup and IDE Support in the [Vue Docs 
 | 工具 | 版本要求 | 安装指南 |
 |------|----------|----------|
 | Node.js | v18+ (推荐 v20+) | [nodejs.org](https://nodejs.org/) |
-| Rust | 1.70+ | [rust-lang.org](https://www.rust-lang.org/tools/install) |
 | pnpm/npm/yarn | 最新版 | `npm install -g pnpm` |
 
-> **Windows 用户注意**: 还需要安装 [Microsoft Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)
+> **Windows 用户注意**: 如果需要编译原生Node.js模块，可能需要安装 [Microsoft Visual Studio C++ Build Tools](https://visualstudio.microsoft.com/visual-cpp-build-tools/)（可选）
 
 ### 安装依赖
 
@@ -67,16 +66,16 @@ pnpm install
 ### 开发模式
 
 ```bash
-npm run tauri dev
+npm run electron:dev
 ```
 
 ### 构建生产版本
 
 ```bash
-npm run tauri build
+npm run electron:build
 ```
 
-构建产物位于 `src-tauri/target/release/bundle/` 目录下。
+构建产物位于 `dist/` 目录下。
 
 ## 项目结构
 
@@ -91,12 +90,11 @@ InkTrace/
 │   ├── types/             # TypeScript 类型定义
 │   ├── assets/            # 静态资源
 │   └── App.vue
-├── src-tauri/             # Tauri 后端
-│   ├── src/               # Rust 源码
-│   │   ├── db/            # 数据库操作
-│   │   ├── commands/      # Tauri 命令
-│   │   └── models/        # 数据模型
-│   └── Cargo.toml
+├── electron/               # Electron 主进程
+│   ├── main.js            # 主进程入口
+│   ├── preload.js         # 预加载脚本
+│   ├── db/                # 数据库操作 (Node.js)
+│   └── models/            # 数据模型
 ├── PROJECT_PLAN.md        # 项目规划文档
 └── README.md              # 本文件
 ```
@@ -106,31 +104,34 @@ InkTrace/
 ### 常见问题
 
 <details>
-<summary><b>Rust 编译错误</b></summary>
+<summary><b>Electron 应用启动失败</b></summary>
 
-确保已正确安装 Rust 和相关工具链：
+确保已正确安装 Node.js 和相关依赖：
 
 ```bash
-# 检查 Rust 版本
-rustc --version
+# 检查 Node.js 版本
+node --version
 
-# 更新 Rust
-rustup update
+# 检查 npm 版本
+npm --version
+
+# 重新安装依赖
+npm install
 ```
 
-Windows 用户请确保已安装 Visual Studio Build Tools。
+Windows 用户请确保已安装必要的构建工具（如果需要编译原生模块）。
 </details>
 
 <details>
-<summary><b>Tauri 开发服务器启动失败</b></summary>
+<summary><b>Electron 开发模式启动失败</b></summary>
 
-1. 检查端口是否被占用（默认 1420）
+1. 检查端口是否被占用（如开发服务器端口 3000、8080 等）
 2. 清除缓存后重试：
 ```bash
 rm -rf node_modules
-rm -rf src-tauri/target
+rm -rf dist
 npm install
-npm run tauri dev
+npm run electron:dev
 ```
 </details>
 
@@ -159,6 +160,6 @@ npm run tauri dev
 
 ## 致谢
 
-- [Tauri](https://tauri.app/) - 轻量级桌面应用框架
+- [Electron](https://www.electronjs.org/) - 跨平台桌面应用框架
 - [Vue.js](https://vuejs.org/) - 渐进式 JavaScript 框架
 - [SQLite](https://www.sqlite.org/) - 嵌入式数据库
