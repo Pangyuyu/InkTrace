@@ -1,13 +1,15 @@
 import { app, shell, BrowserWindow, ipcMain } from 'electron'
 import { join } from 'path'
-import { electronApp, optimizer, is } from '@electron-toolkit/utils'
 import icon from '../../resources/icon.png?asset'
+import { initDatabase, closeDatabase } from './db'
+import * as repo from './db/repository'
+import { IPC_CHANNELS } from './types'
 
 function createWindow(): void {
   // Create the browser window.
   const mainWindow = new BrowserWindow({
-    width: 900,
-    height: 670,
+    width: 1200,
+    height: 800,
     show: false,
     autoHideMenuBar: true,
     ...(process.platform === 'linux' ? { icon } : {}),
@@ -28,7 +30,7 @@ function createWindow(): void {
 
   // HMR for renderer base on electron-vite cli.
   // Load the remote URL for development or the local html file for production.
-  if (is.dev && process.env['ELECTRON_RENDERER_URL']) {
+  if (process.env['ELECTRON_RENDERER_URL']) {
     mainWindow.loadURL(process.env['ELECTRON_RENDERER_URL'])
   } else {
     mainWindow.loadFile(join(__dirname, '../renderer/index.html'))
@@ -37,20 +39,51 @@ function createWindow(): void {
 
 // This method will be called when Electron has finished
 // initialization and is ready to create browser windows.
-// Some APIs can only be used after this event occurs.
-app.whenReady().then(() => {
+app.whenReady().then(async () => {
+  console.log("========whenReady========")
+  // 初始化数据库
+  await initDatabase()
+
   // Set app user model id for windows
-  electronApp.setAppUserModelId('com.electron')
+  app.setAppUserModelId('com.electron')
 
-  // Default open or close DevTools by F12 in development
-  // and ignore CommandOrControl + R in production.
-  // see https://github.com/alex8088/electron-toolkit/tree/master/packages/utils
-  app.on('browser-window-created', (_, window) => {
-    optimizer.watchWindowShortcuts(window)
-  })
+  // 开发模式下自动打开 DevTools
+  if (process.env.NODE_ENV === 'development' || process.env.ELECTRON_RENDERER_URL) {
+    app.on('browser-window-created', (_, window) => {
+      window.webContents.openDevTools()
+    })
+  }
 
-  // IPC test
-  ipcMain.on('ping', () => console.log('pong'))
+  // ==================== IPC Handlers ====================
+
+  // Content Type
+  ipcMain.handle(IPC_CHANNELS.CONTENT_TYPE_GET_ALL, () => repo.getAllContentTypes())
+  ipcMain.handle(IPC_CHANNELS.CONTENT_TYPE_CREATE, (_, data) => repo.createContentType(data))
+  ipcMain.handle(IPC_CHANNELS.CONTENT_TYPE_UPDATE, (_, id, data) => repo.updateContentType(id, data))
+  ipcMain.handle(IPC_CHANNELS.CONTENT_TYPE_DELETE, (_, id) => repo.deleteContentType(id))
+
+  // Folder
+  ipcMain.handle(IPC_CHANNELS.FOLDER_GET_ALL, () => repo.getAllFolders())
+  ipcMain.handle(IPC_CHANNELS.FOLDER_CREATE, (_, data) => repo.createFolder(data))
+  ipcMain.handle(IPC_CHANNELS.FOLDER_UPDATE, (_, id, data) => repo.updateFolder(id, data))
+  ipcMain.handle(IPC_CHANNELS.FOLDER_DELETE, (_, id) => repo.deleteFolder(id))
+
+  // Tag
+  ipcMain.handle(IPC_CHANNELS.TAG_GET_ALL, () => repo.getAllTags())
+  ipcMain.handle(IPC_CHANNELS.TAG_CREATE, (_, data) => repo.createTag(data))
+  ipcMain.handle(IPC_CHANNELS.TAG_UPDATE, (_, id, data) => repo.updateTag(id, data))
+  ipcMain.handle(IPC_CHANNELS.TAG_DELETE, (_, id) => repo.deleteTag(id))
+
+  // Writing Item
+  ipcMain.handle(IPC_CHANNELS.WRITING_ITEM_GET_ALL, () => repo.getAllWritingItems())
+  ipcMain.handle(IPC_CHANNELS.WRITING_ITEM_GET_BY_ID, (_, id) => repo.getWritingItemById(id))
+  ipcMain.handle(IPC_CHANNELS.WRITING_ITEM_CREATE, (_, data) => repo.createWritingItem(data))
+  ipcMain.handle(IPC_CHANNELS.WRITING_ITEM_UPDATE, (_, id, data) => repo.updateWritingItem(id, data))
+  ipcMain.handle(IPC_CHANNELS.WRITING_ITEM_DELETE, (_, id) => repo.deleteWritingItem(id))
+  ipcMain.handle(IPC_CHANNELS.WRITING_ITEM_SEARCH, (_, query) => repo.searchWritingItems(query))
+  ipcMain.handle(IPC_CHANNELS.WRITING_ITEM_GET_BY_TYPE, (_, typeId) => repo.getItemsByTypeId(typeId))
+  ipcMain.handle(IPC_CHANNELS.WRITING_ITEM_GET_BY_FOLDER, (_, folderId) => repo.getItemsByFolderId(folderId))
+  ipcMain.handle(IPC_CHANNELS.WRITING_ITEM_GET_BY_TAG, (_, tagId) => repo.getItemsByTagId(tagId))
 
   createWindow()
 
@@ -61,14 +94,17 @@ app.whenReady().then(() => {
   })
 })
 
-// Quit when all windows are closed, except on macOS. There, it's common
-// for applications and their menu bar to stay active until the user quits
-// explicitly with Cmd + Q.
+// Quit when all windows are closed
 app.on('window-all-closed', () => {
+  // 关闭数据库
+  closeDatabase()
+
   if (process.platform !== 'darwin') {
     app.quit()
   }
 })
 
-// In this file you can include the rest of your app's specific main process
-// code. You can also put them in separate files and require them here.
+// 应用退出前关闭数据库
+app.on('before-quit', () => {
+  closeDatabase()
+})
